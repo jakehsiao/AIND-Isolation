@@ -38,7 +38,18 @@ def custom_score(game, player):
     """
 
     # TODO: finish this function!
-    raise NotImplementedError
+    #  raise NotImplementedError
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    return float(own_moves - opp_moves) # TODO:make it parameteristic
+
+
 
 
 class CustomPlayer:
@@ -117,6 +128,7 @@ class CustomPlayer:
         """
 
         self.time_left = time_left
+        next_move=random.choice(legal_moves) # init the next move with random choice
 
         # TODO: finish this function!
 
@@ -129,14 +141,23 @@ class CustomPlayer:
             # here in order to avoid timeout. The try/except block will
             # automatically catch the exception raised by the search method
             # when the timer gets close to expiring
-            pass
+            if iterative:
+                max_depth=self.search_depth
+                for d in range(1,max_depth): # TODO:verify the min depth
+                    self.search_depth=d
+                    next_move=self.method(game,depth=0)
+            else:
+                next_move=self.method(game,depth=0)
+
+
+
 
         except Timeout:
             # Handle any actions required at timeout, if necessary
-            pass
+            return next_move
 
         # Return the best move from the last completed search iteration
-        raise NotImplementedError
+        return next_move
 
     def minimax(self, game, depth, maximizing_player=True):
         """Implement the minimax search algorithm as described in the lectures.
@@ -172,8 +193,30 @@ class CustomPlayer:
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
-        # TODO: finish this function!
-        raise NotImplementedError
+        #raise NotImplementedError
+        
+        # get the possible legal moves
+        legal_moves=game.get_legal_moves()
+
+        # return the score and the none move if reaches the max depth of no more legal moves
+        if depth>self.search_depth or len(legal_moves)==0:
+            return self.score(game),(-1,-1)
+
+        # init the best value of min/max node
+        if maximazing_player:
+            best_value="-inf",_
+        else:
+            best_value="inf",_
+
+        # start searching
+        for move in legal_moves:
+            new_game=game.forecast_move(move)
+            if maximizing_player:
+                best_value=max(best_value,self.minmax(new_game,depth+1,False),key=lambda x:x[0]),move
+            else:
+                best_value=min(best_value,self.minmax(new_game,depth+1,True),key=lambda x:x[0]),move
+        return best_value
+
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True):
         """Implement minimax search with alpha-beta pruning as described in the
@@ -216,5 +259,35 @@ class CustomPlayer:
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
-        # TODO: finish this function!
-        raise NotImplementedError
+
+        # get the legal moves
+        legal_moves=game.get_legal_moves()
+
+        # if no more moves or reach the max depth
+        if len(legal_moves)==0 or depth>self.search_depth:
+            return self.score(game),(-1,-1)
+
+        if not maximizing_player: # a min node 
+            best_value = beta,_
+            for move in legal_moves:
+                new_game=game.forecast_move(move)
+                best_value = min(best_value,
+                        self.alphabeta(new_game,depth,alpha,best_value,True),
+                        key=lambda x:x[0]
+                        ),move
+                if best_value[0]<alpha: # pruning
+                    return best_value
+
+        else: # a max node 
+            best_value = alpha,_
+            for move in legal_moves:
+                new_game=game.forecast_move(move)
+                best_value = max(best_value,
+                        self.alphabeta(new_game,depth,best_value,beta,False),
+                        key=lambda x:x[0]
+                        ),move
+                if best_value[0]>beta: # pruning
+                    return best_value     
+
+
+
