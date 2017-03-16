@@ -8,6 +8,8 @@ relative strength using tournament.py and include the results in your report.
 """
 import random
 
+TESTING = False  # change this while not testing
+
 
 class Timeout(Exception):
     """Subclass base exception for code clarity."""
@@ -37,7 +39,7 @@ def custom_score(game, player):
         The heuristic value of the current game state to the specified player.
     """
 
-    # TODO: finish this function!
+    # TODO: change this function!
     #  raise NotImplementedError
     if game.is_loser(player):
         return float("-inf")
@@ -47,7 +49,8 @@ def custom_score(game, player):
 
     own_moves = len(game.get_legal_moves(player))
     opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
-    return float(own_moves - opp_moves)  # TODO:make it parameteristic
+
+    return float(own_moves**2/(1+opp_moves))  # TODO:make it parameteristic
 
 
 class CustomPlayer:
@@ -92,6 +95,9 @@ class CustomPlayer:
         self.time_left = None
         self.TIMER_THRESHOLD = timeout
 
+        global TESTING
+        self.testing = TESTING
+
     def get_move(self, game, legal_moves, time_left):
         """Search for the best move from the available legal moves and return a
         result before the time limit expires.
@@ -129,6 +135,10 @@ class CustomPlayer:
         """
 
         self.time_left = time_left
+
+        if len(legal_moves) == 0:  # if no legal moves
+            return -1, -1
+
         next_move = random.choice(legal_moves)  # init the next move with random choice
 
         # TODO: finish this function!
@@ -144,8 +154,13 @@ class CustomPlayer:
             # when the timer gets close to expiring
             if self.iterative:
                 max_depth = self.search_depth
-                for d in range(1, max_depth):  # TODO:verify the min depth
+                for d in range(1, max_depth + 1):  # TODO:verify the min depth
                     self.search_depth = d
+
+                    if self.testing:
+                        print("in ID searching:", self.search_depth)
+                        print("START SEARCHING")
+
                     next_move = self.method(game, depth=0)
             else:
                 next_move = self.method(game, depth=0)
@@ -155,7 +170,7 @@ class CustomPlayer:
             return next_move
 
         # Return the best move from the last completed search iteration
-        return next_move
+        return next_move[1]
 
     def minimax(self, game, depth, maximizing_player=True):
         """Implement the minimax search algorithm as described in the lectures.
@@ -192,9 +207,12 @@ class CustomPlayer:
             raise Timeout()
 
         # raise NotImplementedError
-        
+
+
         # get the possible legal moves
-        legal_moves = game.get_legal_moves()
+        legal_moves = game.get_legal_moves(self)
+
+        if self.testing: print("depth:%d, legal moves:%d" % (depth, len(legal_moves)))
 
         # return the score and the none move if reaches the max depth of no more legal moves
         if depth > self.search_depth or len(legal_moves) == 0:
@@ -202,17 +220,21 @@ class CustomPlayer:
 
         # init the best value of min/max node
         if maximizing_player:
-            best_value = "-inf", 0
+            best_value = [float("-inf"), 0]
         else:
-            best_value = "inf", 0
+            best_value = [float("inf"), 0]
 
         # start searching
         for move in legal_moves:
             new_game = game.forecast_move(move)
+            old_value = best_value[0]
             if maximizing_player:
-                best_value = max(best_value[0],self.minimax(new_game,depth+1,False)[0]),move
+                best_value[0] = max(best_value[0], self.minimax(new_game, depth + 1, False)[0])
             else:
-                best_value = min(best_value[0], self.minimax(new_game, depth+1, True)[0]), move
+                best_value[0] = min(best_value[0], self.minimax(new_game, depth + 1, True)[0])
+            if best_value[0] != old_value:
+                best_value[1] = move
+
         return best_value
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True):
@@ -257,29 +279,40 @@ class CustomPlayer:
             raise Timeout()
 
         # get the legal moves
-        legal_moves = game.get_legal_moves()
+        legal_moves = game.get_legal_moves(self)
+
+        if self.testing: print("alpha:%f, beta:%f, depth:%f, legal moves:%s" % (alpha, beta, depth, ''.join(str(legal_moves))))
 
         # if no more moves or reach the max depth
         if len(legal_moves) == 0 or depth > self.search_depth:
+            if self.testing:print("search hits the bottom, return: ", self.score(game,self))
             return self.score(game, self), (-1, -1)
 
         if not maximizing_player:  # a min node
-            best_value = beta, 0
+            best_value = [beta, 0]
             for move in legal_moves:
                 new_game = game.forecast_move(move)
-                best_value = min(best_value[0],
-                        self.alphabeta(new_game,depth,alpha,best_value[0],True)[0],
-                        ),move
-                if best_value[0] < alpha: # pruning
+                old_value = best_value[0]
+                best_value[0] = min(best_value[0],
+                                 self.alphabeta(new_game, depth + 1, alpha, best_value[0], True)[0])
+                if best_value[0] != old_value:
+                    best_value[1] = move
+                if best_value[0] < alpha:  # pruning
+                    if self.testing: print("pruning")
                     return best_value
 
         else:  # a max node
-            best_value = alpha,0
+            best_value = [alpha, 0]
             for move in legal_moves:
-                new_game=game.forecast_move(move)
-                best_value = max(best_value[0],
-                        self.alphabeta(new_game,depth,best_value[0],beta,False)[0],
-                        ),move
-                if best_value[0] > beta: # pruning
-                    return best_value     
+                new_game = game.forecast_move(move)
+                old_value = best_value[0]
+                best_value[0] = max(best_value[0],
+                                 self.alphabeta(new_game, depth + 1, best_value[0], beta, False)[0],
+                                 )
+                if best_value[0] != old_value:
+                    best_value[1] = move
+                if best_value[0] > beta:  # pruning
+                    if self.testing: print("pruning")
+                    return best_value
 
+        return best_value
