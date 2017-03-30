@@ -10,7 +10,7 @@ To get the best choice of parameters a and b, I used an optimization algorithm c
 
 Then after x iters of twiddle, the best parameters chosen are:
 ```
-a = 
-b = 
+a = 1.001
+b = 1.180
 ```
-
+And with this set of parameters, my agent reached a win rate of 77.14%.
