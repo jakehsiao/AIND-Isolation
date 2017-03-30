@@ -16,7 +16,7 @@ class Timeout(Exception):
     pass
 
 
-def custom_score(game, player):
+def custom_score(game, player, a=1, b=1):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
 
@@ -50,7 +50,7 @@ def custom_score(game, player):
     own_moves = len(game.get_legal_moves(player))
     opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
 
-    return float(own_moves**2/(1+opp_moves))  # TODO:make it parameteristic
+    return a*float(own_moves**2/(1+opp_moves))+b*float(own_moves/(1+opp_moves**2))
 
 
 class CustomPlayer:

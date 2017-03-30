@@ -22,6 +22,7 @@ initiative in the second match with agentB at (5, 2) as player 1 and agentA at
 import itertools
 import random
 import warnings
+from functools import partial
 
 from collections import namedtuple
 
@@ -135,8 +136,7 @@ def play_round(agents, num_matches):
     return 100. * wins / total
 
 
-def main():
-
+def main(a_=1, b_=1):
     HEURISTICS = [("Null", null_score),
                   ("Open", open_move_score),
                   ("Improved", improved_score)]
@@ -160,10 +160,14 @@ def main():
     # systems; i.e., the performance of the student agent is considered
     # relative to the performance of the ID_Improved agent to account for
     # faster or slower computers.
-    test_agents = [Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
-                   Agent(CustomPlayer(score_fn=custom_score, **CUSTOM_ARGS), "Student")]
+    custom_score_fn = partial(custom_score, a=a_, b=b_)
 
-    print(DESCRIPTION)
+    # test_agents = [Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
+    #               Agent(CustomPlayer(score_fn=custom_score_fn, **CUSTOM_ARGS), "Student")]
+    test_agents = [Agent(CustomPlayer(score_fn=custom_score_fn, **CUSTOM_ARGS), "Student")]
+
+    #print(DESCRIPTION)
+    win_ratios = []
     for agentUT in test_agents:
         print("")
         print("*************************")
@@ -172,11 +176,51 @@ def main():
 
         agents = random_agents + mm_agents + ab_agents + [agentUT]
         win_ratio = play_round(agents, NUM_MATCHES)
+        win_ratios.append(win_ratio)
 
         print("\n\nResults:")
         print("----------")
         print("{!s:<15}{:>10.2f}%".format(agentUT.name, win_ratio))
 
+    return -sum(win_ratios)/len(win_ratios)
+
+
+def twiddle(run, tol=0.1):  # Make this tolerance bigger if you are timing out!
+    ############## ADD CODE BELOW ####################
+
+    p = [1, 1]
+    dp = [0.1, 0.1]
+    best_err = run(*p)
+
+    times = 0
+
+    while sum(dp) > tol:
+        for i in range(len(p)):
+            p[i] += dp[i] # go up and try
+            err = run(*p)
+            if err < best_err:
+                best_err = err
+                dp[i] *= 1.1  # enlarge the confidence region
+            else:
+                p[i] -= 2 * dp[i]  # go down and try again
+                err = run(*p)
+                if err < best_err:
+                    best_err = err
+                    dp[i] *= 1.1  # enlarge the confidence region
+                else:
+                    p[i] += dp[i]  # return to the original value
+                    dp[i] *= 0.9  # smaller the confidence region
+
+        print("twiddle:", times, "\np:", p, "\ndp:", dp, "\nerr:", err, "\nbest_err:", best_err)
+        print("---")
+        times += 1
+        if times > 1000:
+            print("too much iters")
+            return
+
+    return p
+
 
 if __name__ == "__main__":
-    main()
+    p = twiddle(main)
+    print("best parameters:", p)
