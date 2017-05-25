@@ -14,6 +14,7 @@ order corrects for imbalances due to both starting position and initiative.
 import itertools
 import random
 import warnings
+from functools import partial
 
 from collections import namedtuple
 
@@ -126,6 +127,7 @@ def play_matches(cpu_agents, test_agents, num_matches):
                "legal moves available to play.\n").format(total_forfeits))
 
 
+<<<<<<< HEAD
 def main():
 
     # Define two agents to compare -- these agents will play from the same
@@ -153,7 +155,93 @@ def main():
     print("{:^74}".format("Playing Matches"))
     print("{:^74}".format("*************************"))
     play_matches(cpu_agents, test_agents, NUM_MATCHES)
+=======
+def main(a_=1, b_=1):
+    HEURISTICS = [("Null", null_score),
+                  ("Open", open_move_score),
+                  ("Improved", improved_score)]
+    AB_ARGS = {"search_depth": 5, "method": 'alphabeta', "iterative": False}
+    MM_ARGS = {"search_depth": 3, "method": 'minimax', "iterative": False}
+    CUSTOM_ARGS = {"method": 'alphabeta', 'iterative': True}
+
+    # Create a collection of CPU agents using fixed-depth minimax or alpha beta
+    # search, or random selection.  The agent names encode the search method
+    # (MM=minimax, AB=alpha-beta) and the heuristic function (Null=null_score,
+    # Open=open_move_score, Improved=improved_score). For example, MM_Open is
+    # an agent using minimax search with the open moves heuristic.
+    mm_agents = [Agent(CustomPlayer(score_fn=h, **MM_ARGS),
+                       "MM_" + name) for name, h in HEURISTICS]
+    ab_agents = [Agent(CustomPlayer(score_fn=h, **AB_ARGS),
+                       "AB_" + name) for name, h in HEURISTICS]
+    random_agents = [Agent(RandomPlayer(), "Random")]
+
+    # ID_Improved agent is used for comparison to the performance of the
+    # submitted agent for calibration on the performance across different
+    # systems; i.e., the performance of the student agent is considered
+    # relative to the performance of the ID_Improved agent to account for
+    # faster or slower computers.
+    custom_score_fn = partial(custom_score, a=a_, b=b_)
+
+    # test_agents = [Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
+    #               Agent(CustomPlayer(score_fn=custom_score_fn, **CUSTOM_ARGS), "Student")]
+    test_agents = [Agent(CustomPlayer(score_fn=custom_score_fn, **CUSTOM_ARGS), "Student")]
+
+    #print(DESCRIPTION)
+    win_ratios = []
+    for agentUT in test_agents:
+        print("")
+        print("*************************")
+        print("{:^25}".format("Evaluating: " + agentUT.name))
+        print("*************************")
+
+        agents = random_agents + mm_agents + ab_agents + [agentUT]
+        win_ratio = play_round(agents, NUM_MATCHES)
+        win_ratios.append(win_ratio)
+
+        print("\n\nResults:")
+        print("----------")
+        print("{!s:<15}{:>10.2f}%".format(agentUT.name, win_ratio))
+>>>>>>> 371dd7f468e4c5e1fc4fdad70ce49ec52204cc63
+
+    return -sum(win_ratios)/len(win_ratios)
+
+
+def twiddle(run, tol=0.1):  # Make this tolerance bigger if you are timing out!
+    ############## ADD CODE BELOW ####################
+
+    p = [1, 1]
+    dp = [0.1, 0.1]
+    best_err = run(*p)
+
+    times = 0
+
+    while sum(dp) > tol:
+        for i in range(len(p)):
+            p[i] += dp[i] # go up and try
+            err = run(*p)
+            if err < best_err:
+                best_err = err
+                dp[i] *= 1.1  # enlarge the confidence region
+            else:
+                p[i] -= 2 * dp[i]  # go down and try again
+                err = run(*p)
+                if err < best_err:
+                    best_err = err
+                    dp[i] *= 1.1  # enlarge the confidence region
+                else:
+                    p[i] += dp[i]  # return to the original value
+                    dp[i] *= 0.9  # smaller the confidence region
+
+        print("twiddle:", times, "\np:", p, "\ndp:", dp, "\nerr:", err, "\nbest_err:", best_err)
+        print("---")
+        times += 1
+        if times > 1000:
+            print("too much iters")
+            return
+
+    return p
 
 
 if __name__ == "__main__":
-    main()
+    p = twiddle(main)
+    print("best parameters:", p)

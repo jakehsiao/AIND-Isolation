@@ -248,6 +248,8 @@ class HumanPlayer():
 
             except ValueError:
                 print('Invalid index! Try again.')
+        # print the gme
+        print(game.to_string())
 
         return legal_moves[index]
 
@@ -256,7 +258,7 @@ if __name__ == "__main__":
     from isolation import Board
 
     # create an isolation board (by default 7x7)
-    player1 = RandomPlayer()
+    player1 = RandomPlayer() # Changed for play
     player2 = GreedyPlayer()
     game = Board(player1, player2)
 
