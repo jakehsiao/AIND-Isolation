@@ -12,6 +12,8 @@ SETTINGS = {
         "optional": {
             "heuristic_analysis": {"ext": ["pdf"], "size": 6.0},
             "research_review": {"ext": ["pdf"], "size": 6.0},
+            "heuristic_analysis_with_visualization":{"ext": ["html"], "size": 6.0},
+            "aind_p2_img":{"ext":["png"], "size": 6.0}
         }
     },
     "isolation-pvp": {
